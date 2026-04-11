@@ -5,6 +5,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -37,18 +38,22 @@ public class GameScreen implements Screen {
     private boolean isDead = false;
     private long lastPlayedTime = 0;
 
-    // Graphics (temporary - will be moved to GameUI gradually)
+    // Graphics
     private OrthographicCamera camera;
     private Viewport viewport;
     private SpriteBatch batch;
     private ShapeRenderer shapeRenderer;
-    private BitmapFont fontLarge, fontMedium, fontSmall;
     private Skin skin;
+    private BitmapFont fontLarge, fontMedium, fontSmall;
 
-    // Textures
-    private Texture plantHealthy;
-    private Texture plantDry;
-    private Texture plantDead;
+    // Plant textures - direct mapping to health levels
+    private Texture plantTexture0;   // 0 health (dead)
+    private Texture plantTexture10;  // 10 health
+    private Texture plantTexture20;  // 20 health
+    private Texture plantTexture40;  // 40 health
+    private Texture plantTexture60;  // 60 health
+    private Texture plantTexture80;  // 80 health
+    private Texture plantTexture100; // 100 health (full)
     private Texture currentPlantTexture;
 
     // Water effect is now handled by GameUI
@@ -84,20 +89,29 @@ public class GameScreen implements Screen {
         batch = new SpriteBatch();
         shapeRenderer = new ShapeRenderer();
 
-        // Load textures
-        plantHealthy = new Texture(Gdx.files.internal("plants/plant_healthy.png"));
-        plantDry = new Texture(Gdx.files.internal("plants/plant_dry.png"));
-        plantDead = new Texture(Gdx.files.internal("plants/plant_dead.png"));
+        // Load plant textures directly
+        plantTexture0 = loadTexture("plants/plant_0.png");
+        plantTexture10 = loadTexture("plants/plant_10.png");
+        plantTexture20 = loadTexture("plants/plant_20.png");
+        plantTexture40 = loadTexture("plants/plant_40.png");
+        plantTexture60 = loadTexture("plants/plant_60.png");
+        plantTexture80 = loadTexture("plants/plant_80.png");
+        plantTexture100 = loadTexture("plants/plant_100.png");
 
-        // Store plant dimensions
-        plantWidth = plantHealthy.getWidth();
-        plantHeight = plantHealthy.getHeight();
+        // Store plant dimensions (use 100 health texture as reference)
+        plantWidth = plantTexture100.getWidth();
+        plantHeight = plantTexture100.getHeight();
 
         // Calculate UI positions for portrait layout
         calculateUIPositions();
 
         // Set initial plant texture
         updatePlantTexture();
+        
+        // Safety check: ensure currentPlantTexture is not null
+        if (currentPlantTexture == null) {
+            currentPlantTexture = plantTexture100; // Use full health plant as default
+        }
 
         // Load skin and create fonts of different sizes
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
@@ -115,6 +129,24 @@ public class GameScreen implements Screen {
         
         // Set GameUI stage as input processor
         Gdx.input.setInputProcessor(gameUI.getStage());
+    }
+    
+    /** Helper method to load texture with error handling */
+    private Texture loadTexture(String filename) {
+        try {
+            Texture texture = new Texture(Gdx.files.internal(filename));
+            Gdx.app.log("GameScreen", "Loaded texture: " + filename);
+            return texture;
+        } catch (Exception e) {
+            Gdx.app.error("GameScreen", "Failed to load texture: " + filename, e);
+            // Create a placeholder texture
+            Pixmap pixmap = new Pixmap(100, 100, Pixmap.Format.RGBA8888);
+            pixmap.setColor(0.5f, 0.5f, 0.5f, 1f);
+            pixmap.fill();
+            Texture placeholder = new Texture(pixmap);
+            pixmap.dispose();
+            return placeholder;
+        }
     }
 
     /** Calculate UI element positions for portrait layout */
@@ -217,12 +249,21 @@ public class GameScreen implements Screen {
     /** Update plant texture based on health and death state */
     void updatePlantTexture() {
         if (isDead || health <= HEALTH_DEAD) {
-            currentPlantTexture = plantDead;
+            // Plant is dead - use plant_0.png
+            currentPlantTexture = plantTexture0;
             isDead = true;
-        } else if (health <= HEALTH_DRY) {
-            currentPlantTexture = plantDry;
+        } else if (health >= 80) {
+            currentPlantTexture = plantTexture100;
+        } else if (health >= 60) {
+            currentPlantTexture = plantTexture80;
+        } else if (health >= 40) {
+            currentPlantTexture = plantTexture60;
+        } else if (health >= 20) {
+            currentPlantTexture = plantTexture40;
+        } else if (health >= 10) {
+            currentPlantTexture = plantTexture20;
         } else {
-            currentPlantTexture = plantHealthy;
+            currentPlantTexture = plantTexture10;
         }
     }
 
@@ -278,11 +319,9 @@ public class GameScreen implements Screen {
                 saveGameState();
             }
             
-            // Update plant texture if health crosses threshold
-            if ((health <= HEALTH_DRY && currentPlantTexture != plantDry) || 
-                (health > HEALTH_DRY && currentPlantTexture != plantHealthy && !isDead)) {
-                updatePlantTexture();
-            }
+            // Update plant texture if health has changed
+            // The updatePlantTexture() method checks if we need a new texture
+            updatePlantTexture();
             
             // Update survival time
             survivalSeconds += delta;
@@ -314,8 +353,8 @@ public class GameScreen implements Screen {
         // Calculate available space for plant (screen height minus bottom bar)
         float availableHeight = VIEWPORT_HEIGHT - 180f; // Bottom bar is 180px
         
-        // Make plant much smaller - target 60% of available width
-        float targetWidth = VIEWPORT_WIDTH * 0.6f;
+        // Make plant 50% bigger - target 90% of screen width (was 60%)
+        float targetWidth = VIEWPORT_WIDTH * 0.9f;
         float scale = targetWidth / plantWidth;
         
         // Apply the scale
@@ -323,8 +362,8 @@ public class GameScreen implements Screen {
         float scaledHeight = plantHeight * scale;
         
         // If scaled height is still too tall, scale down further
-        if (scaledHeight > availableHeight * 0.8f) {
-            scale = (availableHeight * 0.8f) / plantHeight;
+        if (scaledHeight > availableHeight * 0.9f) {
+            scale = (availableHeight * 0.9f) / plantHeight;
             scaledWidth = plantWidth * scale;
             scaledHeight = plantHeight * scale;
         }
@@ -381,9 +420,16 @@ public class GameScreen implements Screen {
         fontMedium.dispose();
         fontSmall.dispose();
         skin.dispose();
-        plantHealthy.dispose();
-        plantDry.dispose();
-        plantDead.dispose();
+        
+        // Dispose all plant textures
+        if (plantTexture0 != null) plantTexture0.dispose();
+        if (plantTexture10 != null) plantTexture10.dispose();
+        if (plantTexture20 != null) plantTexture20.dispose();
+        if (plantTexture40 != null) plantTexture40.dispose();
+        if (plantTexture60 != null) plantTexture60.dispose();
+        if (plantTexture80 != null) plantTexture80.dispose();
+        if (plantTexture100 != null) plantTexture100.dispose();
+        
         gameUI.dispose();
     }
 

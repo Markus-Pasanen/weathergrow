@@ -11,10 +11,14 @@ WeatherGrow is a simple, elegant plant care game with a clean UI and intuitive g
 ### Core Gameplay
 - **Health System**: Plant starts at 100 health, loses 1 point per second
 - **Offline Calculation**: Game saves timestamp and calculates health loss when reopened
-- **Visual Health Indicators**: Plant shows different textures based on health:
-  - **Healthy** (>30 health): Green, vibrant plant
-  - **Dry** (≤30 health): Brown, wilted plant  
-  - **Dead** (≤0 health): Gray, dead plant
+- **Visual Health Indicators**: Plant shows 7 different textures based on exact health:
+  - **100 health**: plant_100.png (full health)
+  - **80 health**: plant_80.png
+  - **60 health**: plant_60.png
+  - **40 health**: plant_40.png
+  - **20 health**: plant_20.png
+  - **10 health**: plant_10.png
+  - **0 health**: plant_0.png (dead)
 - **Watering**: Tap water button to restore 20 health points
 
 ### Clean UI Design
@@ -88,7 +92,7 @@ weathergrow/
 - All game logic is in `GameScreen.java`, UI in `GameUI.java`
 
 ### Assets
-- Plant textures: `plant_healthy.png`, `plant_dry.png`, `plant_dead.png`
+- Plant textures: `plant_100.png`, `plant_80.png`, `plant_60.png`, `plant_40.png`, `plant_20.png`, `plant_10.png`, `plant_0.png`
 - UI icons: `water.png`, `inventory.png`, `store.png`, `settings.png`, `restart.png`, `x.png`
 - Font: Uses default LibGDX skin font with scaling
 
