@@ -32,12 +32,13 @@ public class GameScreen implements Screen {
     private static final float VIEWPORT_HEIGHT = 1280f;
     
     // Health bar constants
-    private static final float HEALTH_BAR_WIDTH = 500f;
+    private static final float HEALTH_BAR_PADDING_HORIZONTAL = 60f; // Triple the previous padding
+    private static final float HEALTH_BAR_WIDTH = VIEWPORT_WIDTH - (HEALTH_BAR_PADDING_HORIZONTAL * 2); // Full screen width minus padding
     private static final float HEALTH_BAR_HEIGHT = 50f;
     private static final float HEALTH_BAR_Y = VIEWPORT_HEIGHT - 120f;
     private static final float HEALTH_BAR_PADDING = 15f;
-    private static final float HEALTH_ICON_SIZE = 160f; // 2x bigger health icon (80 * 2 = 160)
-    private static final float HEALTH_BAR_CORNER_RADIUS = 25f;
+    private static final float HEALTH_ICON_SIZE = 150f; // Health icon size
+    private static final float HEALTH_BAR_CORNER_RADIUS = 24f; // Slightly less than half height for visual appeal
     private static final float HEALTH_ICON_OVERLAP = 0f; // No overlap - absolute positioning
 
     // Game state
@@ -562,19 +563,21 @@ public class GameScreen implements Screen {
         // Calculate health percentage
         float healthPercent = health / HEALTH_MAX;
         
-        // Calculate health bar position (centered)
-        float healthBarX = (VIEWPORT_WIDTH - HEALTH_BAR_WIDTH) / 2;
+        // Calculate health bar position (absolute with padding)
+        float healthBarX = HEALTH_BAR_PADDING_HORIZONTAL;
         
         // Draw health bar background (dark gray) with rounded corners
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         
-        // Draw rounded rectangle background
+        // Draw fully rounded rectangle background (pill shape)
+        float bgHeight = HEALTH_BAR_HEIGHT + HEALTH_BAR_PADDING * 2;
+        float bgCornerRadius = bgHeight / 2; // Fully rounded
         drawRoundedRect(shapeRenderer, 
                        healthBarX - HEALTH_BAR_PADDING, 
                        HEALTH_BAR_Y - HEALTH_BAR_PADDING, 
                        HEALTH_BAR_WIDTH + HEALTH_BAR_PADDING * 2, 
-                       HEALTH_BAR_HEIGHT + HEALTH_BAR_PADDING * 2,
-                       HEALTH_BAR_CORNER_RADIUS,
+                       bgHeight,
+                       bgCornerRadius,
                        new Color(0.1f, 0.1f, 0.1f, 0.8f));
         
         // Health bar fill with gradient colors based on health
@@ -632,8 +635,8 @@ public class GameScreen implements Screen {
         // Calculate health percentage
         float healthPercent = health / HEALTH_MAX;
         
-        // Calculate health bar position (centered)
-        float healthBarX = (VIEWPORT_WIDTH - HEALTH_BAR_WIDTH) / 2;
+        // Calculate health bar position (absolute with padding)
+        float healthBarX = HEALTH_BAR_PADDING_HORIZONTAL;
         
         // Health percentage text
         String healthText;

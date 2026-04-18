@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
@@ -16,6 +17,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 
 /** Scene2D UI manager for the game screen. */
 public class GameUI {
@@ -38,7 +40,7 @@ public class GameUI {
     // Constants for layout
     private static final float VIEWPORT_WIDTH = 720f;
     private static final float VIEWPORT_HEIGHT = 1280f;
-    private static final float BUTTON_SIZE = 160f; // Same size as health icon (160px)
+    private static final float BUTTON_SIZE = 200f; // Slightly larger than original 160px
     private static final float BUTTON_PADDING = 20f; // Same padding as health icon (20px)
     private static final float THIRST_HEALTHY = 70f;
 
@@ -146,6 +148,28 @@ public class GameUI {
         
         waterButton = new ImageButton(waterStyle);
         
+        // Add press animation - change color when pressed
+        waterButton.addListener(new ClickListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                // Add color tint for press feedback
+                waterButton.setColor(0.7f, 0.7f, 1.0f, 1.0f); // Brighter blue tint
+                return true;
+            }
+            
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                // Restore color
+                waterButton.setColor(Color.WHITE);
+            }
+            
+            @Override
+            public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
+                // If finger exits button without releasing, restore normal state
+                waterButton.setColor(Color.WHITE);
+            }
+        });
+        
         // Create simple button container with label
         waterButtonContainer = createSimpleButton(waterButton, "WATER");
         waterButtonLabel = getLabelFromContainer(waterButtonContainer);
@@ -158,7 +182,7 @@ public class GameUI {
     private Table createSimpleButton(ImageButton button, String labelText) {
         Table container = new Table();
         
-        button.setSize(BUTTON_SIZE, BUTTON_SIZE);
+        // Add button with fixed size
         container.add(button).size(BUTTON_SIZE);
         
         return container;
