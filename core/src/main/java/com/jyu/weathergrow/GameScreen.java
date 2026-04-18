@@ -48,6 +48,12 @@ public class GameScreen implements Screen {
     
     // Weather system
     private WeatherManager weatherManager;
+    
+    // Music system
+    private MusicManager musicManager;
+    
+    // Sound effects system
+    private SoundManager soundManager;
 
     // Plant textures - direct mapping to health levels
     private Texture plantTexture0;   // 0 health (dead)
@@ -131,6 +137,16 @@ public class GameScreen implements Screen {
         System.out.println("GameScreen: Initializing WeatherManager...");
         weatherManager = new WeatherManager();
         System.out.println("GameScreen: WeatherManager initialized.");
+        
+        // Initialize music system
+        System.out.println("GameScreen: Initializing MusicManager...");
+        musicManager = new MusicManager();
+        System.out.println("GameScreen: MusicManager initialized.");
+        
+        // Initialize sound effects system
+        System.out.println("GameScreen: Initializing SoundManager...");
+        soundManager = new SoundManager();
+        System.out.println("GameScreen: SoundManager initialized.");
 
         // Initialize GameUI (Scene2D UI)
         gameUI = new GameUI(this, skin, viewport);
@@ -283,6 +299,11 @@ public class GameScreen implements Screen {
         waterCount++;
         updatePlantTexture();
 
+        // Play splash sound effect
+        if (soundManager != null) {
+            soundManager.playSplash();
+        }
+
         // Update timestamp to now
         lastSaveTimestamp = System.currentTimeMillis();
         saveGameState();
@@ -345,6 +366,9 @@ public class GameScreen implements Screen {
         
         // Update weather system
         weatherManager.update(delta);
+        
+        // Update music system
+        musicManager.update(delta);
 
         // Clear screen
         Gdx.gl.glClearColor(0f, 0f, 0f, 1);
@@ -424,6 +448,48 @@ public class GameScreen implements Screen {
         // Screen is hidden (e.g., another screen is shown)
     }
 
+    // Music control methods for UI
+    public void toggleMusic() {
+        if (musicManager != null) {
+            musicManager.toggle();
+        }
+    }
+    
+    public boolean isMusicPlaying() {
+        return musicManager != null && musicManager.isPlaying();
+    }
+    
+    public float getMusicVolume() {
+        return musicManager != null ? musicManager.getVolume() : 0.5f;
+    }
+    
+    public void setMusicVolume(float volume) {
+        if (musicManager != null) {
+            musicManager.setVolume(volume);
+        }
+    }
+    
+    // Sound effects control methods for UI
+    public void toggleSound() {
+        if (soundManager != null) {
+            soundManager.toggle();
+        }
+    }
+    
+    public boolean isSoundEnabled() {
+        return soundManager != null && soundManager.isEnabled();
+    }
+    
+    public float getSoundVolume() {
+        return soundManager != null ? soundManager.getVolume() : 0.7f;
+    }
+    
+    public void setSoundVolume(float volume) {
+        if (soundManager != null) {
+            soundManager.setVolume(volume);
+        }
+    }
+
     @Override
     public void dispose() {
         // Clean up resources
@@ -448,6 +514,16 @@ public class GameScreen implements Screen {
         // Dispose weather system
         if (weatherManager != null) {
             weatherManager.dispose();
+        }
+        
+        // Dispose music system
+        if (musicManager != null) {
+            musicManager.dispose();
+        }
+        
+        // Dispose sound effects system
+        if (soundManager != null) {
+            soundManager.dispose();
         }
     }
 
