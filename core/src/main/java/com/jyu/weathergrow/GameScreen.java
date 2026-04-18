@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -29,6 +30,15 @@ public class GameScreen implements Screen {
     // Virtual viewport size (portrait: 720x1280)
     private static final float VIEWPORT_WIDTH = 720f;
     private static final float VIEWPORT_HEIGHT = 1280f;
+    
+    // Health bar constants
+    private static final float HEALTH_BAR_WIDTH = 500f;
+    private static final float HEALTH_BAR_HEIGHT = 50f;
+    private static final float HEALTH_BAR_Y = VIEWPORT_HEIGHT - 120f;
+    private static final float HEALTH_BAR_PADDING = 15f;
+    private static final float HEALTH_ICON_SIZE = 160f; // 2x bigger health icon (80 * 2 = 160)
+    private static final float HEALTH_BAR_CORNER_RADIUS = 25f;
+    private static final float HEALTH_ICON_OVERLAP = 0f; // No overlap - absolute positioning
 
     // Game state
     private float health = HEALTH_MAX; // Start with 100 health
@@ -64,6 +74,9 @@ public class GameScreen implements Screen {
     private Texture plantTexture80;  // 80 health
     private Texture plantTexture100; // 100 health (full)
     private Texture currentPlantTexture;
+    
+    // UI textures
+    private Texture healthIconTexture;
 
     // Water effect is now handled by GameUI
     private Vector3 tapPosition = new Vector3();
@@ -106,6 +119,9 @@ public class GameScreen implements Screen {
         plantTexture60 = loadTexture("plants/plant_60.png");
         plantTexture80 = loadTexture("plants/plant_80.png");
         plantTexture100 = loadTexture("plants/plant_100.png");
+        
+        // Load health icon texture
+        healthIconTexture = loadTexture("ui/Icons/health.png");
 
         // Store plant dimensions (use 100 health texture as reference)
         plantWidth = plantTexture100.getWidth();
@@ -384,6 +400,14 @@ public class GameScreen implements Screen {
         weatherManager.render(batch);
         batch.end();
 
+        // Draw health bar at top of screen (using ShapeRenderer)
+        drawHealthBar();
+        
+        // Draw health icon on top of health bar
+        batch.begin();
+        drawHealthIcon(batch);
+        batch.end();
+        
         // Draw plant cropped and scaled to fit screen
         batch.begin();
         
@@ -405,14 +429,17 @@ public class GameScreen implements Screen {
             scaledHeight = plantHeight * scale;
         }
         
-        // Center plant horizontally and vertically (above bottom bar)
+        // Center plant horizontally, position at very bottom
         float plantX = (VIEWPORT_WIDTH - scaledWidth) / 2;
-        float plantY = (VIEWPORT_HEIGHT - scaledHeight - 180f) / 2 + 180f; // Center in space above bottom bar
+        float plantY = 0f; // Position at absolute bottom of screen
         
         // No sway animation - plant stays perfectly still
         // Draw the plant with calculated cropping/scaling
         batch.draw(currentPlantTexture, plantX, plantY, scaledWidth, scaledHeight);
-
+        
+        // Draw health bar text
+        drawHealthBarText(batch);
+        
         // Water effect is now handled by GameUI with proper water droplet icon
         // No need to draw plant texture with blue tint
         batch.end();
@@ -509,6 +536,9 @@ public class GameScreen implements Screen {
         if (plantTexture80 != null) plantTexture80.dispose();
         if (plantTexture100 != null) plantTexture100.dispose();
         
+        // Dispose health icon texture
+        if (healthIconTexture != null) healthIconTexture.dispose();
+        
         gameUI.dispose();
         
         // Dispose weather system
@@ -527,6 +557,114 @@ public class GameScreen implements Screen {
         }
     }
 
+    /** Draw health bar shapes at top of screen */
+    private void drawHealthBar() {
+        // Calculate health percentage
+        float healthPercent = health / HEALTH_MAX;
+        
+        // Calculate health bar position (centered)
+        float healthBarX = (VIEWPORT_WIDTH - HEALTH_BAR_WIDTH) / 2;
+        
+        // Draw health bar background (dark gray) with rounded corners
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        
+        // Draw rounded rectangle background
+        drawRoundedRect(shapeRenderer, 
+                       healthBarX - HEALTH_BAR_PADDING, 
+                       HEALTH_BAR_Y - HEALTH_BAR_PADDING, 
+                       HEALTH_BAR_WIDTH + HEALTH_BAR_PADDING * 2, 
+                       HEALTH_BAR_HEIGHT + HEALTH_BAR_PADDING * 2,
+                       HEALTH_BAR_CORNER_RADIUS,
+                       new Color(0.1f, 0.1f, 0.1f, 0.8f));
+        
+        // Health bar fill with gradient colors based on health
+        Color barColor;
+        if (healthPercent > 0.7f) {
+            // Green for healthy (70-100%)
+            barColor = new Color(0.2f, 0.8f, 0.2f, 1);
+        } else if (healthPercent > 0.3f) {
+            // Yellow/orange for dry (30-70%)
+            barColor = new Color(1.0f, 0.8f, 0.2f, 1);
+        } else if (health > 0) {
+            // Red for critical (0-30%)
+            barColor = new Color(0.8f, 0.2f, 0.2f, 1);
+        } else {
+            // Dark red for dead
+            barColor = new Color(0.4f, 0.1f, 0.1f, 1);
+        }
+        
+        // Draw health fill with fully rounded corners
+        float fillWidth = healthPercent * HEALTH_BAR_WIDTH;
+        if (fillWidth > 0) {
+            // Ensure minimum width to show rounded corners
+            float actualFillWidth = Math.max(fillWidth, HEALTH_BAR_CORNER_RADIUS * 2);
+            drawRoundedRect(shapeRenderer, 
+                           healthBarX, 
+                           HEALTH_BAR_Y, 
+                           actualFillWidth, 
+                           HEALTH_BAR_HEIGHT,
+                           HEALTH_BAR_CORNER_RADIUS,
+                           barColor);
+        }
+        
+        shapeRenderer.end();
+    }
+    
+    /** Helper method to draw a rounded rectangle */
+    private void drawRoundedRect(ShapeRenderer shapeRenderer, float x, float y, float width, float height, float radius, Color color) {
+        shapeRenderer.setColor(color);
+        
+        // Draw central rectangle
+        shapeRenderer.rect(x + radius, y, width - 2 * radius, height);
+        
+        // Draw top and bottom rectangles
+        shapeRenderer.rect(x, y + radius, width, height - 2 * radius);
+        
+        // Draw four corner circles
+        shapeRenderer.circle(x + radius, y + radius, radius);
+        shapeRenderer.circle(x + width - radius, y + radius, radius);
+        shapeRenderer.circle(x + radius, y + height - radius, radius);
+        shapeRenderer.circle(x + width - radius, y + height - radius, radius);
+    }
+    
+    /** Draw health bar text */
+    private void drawHealthBarText(SpriteBatch batch) {
+        // Calculate health percentage
+        float healthPercent = health / HEALTH_MAX;
+        
+        // Calculate health bar position (centered)
+        float healthBarX = (VIEWPORT_WIDTH - HEALTH_BAR_WIDTH) / 2;
+        
+        // Health percentage text
+        String healthText;
+        if (isDead) {
+            healthText = "DEAD";
+            fontMedium.setColor(Color.RED);
+        } else {
+            healthText = String.format("%.0f%%", health);
+            fontMedium.setColor(Color.WHITE);
+        }
+        
+        // Center text in health bar
+        GlyphLayout layout = new GlyphLayout(fontMedium, healthText);
+        float textX = healthBarX + (HEALTH_BAR_WIDTH - layout.width) / 2;
+        float textY = HEALTH_BAR_Y + HEALTH_BAR_HEIGHT / 2 + layout.height / 2;
+        
+        fontMedium.draw(batch, healthText, textX, textY);
+        fontMedium.setColor(Color.WHITE);
+    }
+    
+    /** Draw health icon on top of health bar start */
+    private void drawHealthIcon(SpriteBatch batch) {
+        // Absolute positioning with vertical alignment to health bar
+        float iconX = 20f; // 20px from left edge
+        // Align icon vertically with health bar (center of icon aligns with center of health bar)
+        float iconY = HEALTH_BAR_Y + (HEALTH_BAR_HEIGHT - HEALTH_ICON_SIZE) / 2;
+        
+        // Draw health icon (2x bigger, vertically aligned with health bar)
+        batch.draw(healthIconTexture, iconX, iconY, HEALTH_ICON_SIZE, HEALTH_ICON_SIZE);
+    }
+    
     /** Draw white background for plant area */
     private void drawPlantBackground() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);

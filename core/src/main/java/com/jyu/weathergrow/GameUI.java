@@ -27,29 +27,19 @@ public class GameUI {
     // UI components
     private Table bottomActionBar;
     private ImageButton waterButton;
-    private ImageButton inventoryButton;
-    private ImageButton shopButton;
-    private ImageButton settingsButton;
     private Window gameOverWindow;
-    private Window inventoryWindow;
-    private Window shopWindow;
-    private Window settingsWindow;
     private Label waterButtonLabel;
     private Table waterButtonContainer;
     
     // Custom drawables
     private TextureRegionDrawable waterButtonUp;
-    private TextureRegionDrawable inventoryButtonUp;
-    private TextureRegionDrawable shopButtonUp;
-    private TextureRegionDrawable settingsButtonUp;
     private TextureRegionDrawable restartButtonUp;
-    private TextureRegionDrawable xButtonUp;
 
     // Constants for layout
     private static final float VIEWPORT_WIDTH = 720f;
     private static final float VIEWPORT_HEIGHT = 1280f;
-    private static final float BOTTOM_BAR_HEIGHT = 180f;
-    private static final float BUTTON_SIZE = 80f;
+    private static final float BUTTON_SIZE = 160f; // Same size as health icon (160px)
+    private static final float BUTTON_PADDING = 20f; // Same padding as health icon (20px)
     private static final float THIRST_HEALTHY = 70f;
 
     public GameUI(GameScreen gameScreen, Skin skin, Viewport viewport) {
@@ -88,11 +78,7 @@ public class GameUI {
     private void loadCustomAssets() {
         // Try to load icons with multiple fallback strategies
         waterButtonUp = loadIcon("water");
-        inventoryButtonUp = loadIcon("inventory");
-        shopButtonUp = loadIcon("store");
-        settingsButtonUp = loadIcon("settings");
         restartButtonUp = loadIcon("restart");
-        xButtonUp = loadIcon("x");
     }
     
     /** Load an icon - uses PNG files directly */
@@ -122,20 +108,8 @@ public class GameUI {
             case "water":
                 color = new Color(0.2f, 0.5f, 0.9f, 1f); // Blue
                 break;
-            case "inventory":
-                color = new Color(0.9f, 0.6f, 0.2f, 1f); // Orange
-                break;
-            case "store":
-                color = new Color(0.9f, 0.8f, 0.2f, 1f); // Yellow
-                break;
-            case "settings":
-                color = new Color(0.6f, 0.2f, 0.8f, 1f); // Purple
-                break;
             case "restart":
                 color = new Color(0.2f, 0.8f, 0.4f, 1f); // Green
-                break;
-            case "x":
-                color = new Color(0.9f, 0.3f, 0.3f, 1f); // Red
                 break;
             default:
                 color = Color.GRAY;
@@ -158,10 +132,11 @@ public class GameUI {
 
     // Removed stats panel - plant health is shown only through graphics and status text
 
-    /** Create bottom action bar with water, inventory, shop, settings buttons */
+    /** Create bottom action bar with only water button in bottom right corner */
     private void createBottomActionBar() {
         bottomActionBar = new Table();
-        bottomActionBar.pad(20);
+        bottomActionBar.setFillParent(true); // Fill entire stage
+        bottomActionBar.bottom().right(); // Align to bottom right
 
         // Water button (functional)
         ImageButton.ImageButtonStyle waterStyle = new ImageButton.ImageButtonStyle();
@@ -171,61 +146,27 @@ public class GameUI {
         
         waterButton = new ImageButton(waterStyle);
         
-        // Inventory button icon
-        ImageButton.ImageButtonStyle invStyle = new ImageButton.ImageButtonStyle();
-        invStyle.up = inventoryButtonUp;
-        invStyle.down = inventoryButtonUp;
-        invStyle.over = inventoryButtonUp;
-        inventoryButton = new ImageButton(invStyle);
-
-        // Shop button icon  
-        ImageButton.ImageButtonStyle shopStyle = new ImageButton.ImageButtonStyle();
-        shopStyle.up = shopButtonUp;
-        shopStyle.down = shopButtonUp;
-        shopStyle.over = shopButtonUp;
-        shopButton = new ImageButton(shopStyle);
-
-        // Settings button icon
-        ImageButton.ImageButtonStyle settingsStyle = new ImageButton.ImageButtonStyle();
-        settingsStyle.up = settingsButtonUp;
-        settingsStyle.down = settingsButtonUp;
-        settingsStyle.over = settingsButtonUp;
-        settingsButton = new ImageButton(settingsStyle);
-
-        // Create simple button containers with labels (no frames)
+        // Create simple button container with label
         waterButtonContainer = createSimpleButton(waterButton, "WATER");
         waterButtonLabel = getLabelFromContainer(waterButtonContainer);
-        Table invContainer = createSimpleButton(inventoryButton, "INVENTORY");
-        Table shopContainer = createSimpleButton(shopButton, "STORE");
-        Table settingsContainer = createSimpleButton(settingsButton, "SETTINGS");
 
-        bottomActionBar.add(waterButtonContainer).pad(15);
-        bottomActionBar.add(invContainer).pad(15);
-        bottomActionBar.add(shopContainer).pad(15);
-        bottomActionBar.add(settingsContainer).pad(15);
+        // Add button to bottom right corner with padding
+        bottomActionBar.add(waterButtonContainer).pad(BUTTON_PADDING).bottom().right();
     }
     
-    /** Create a simple button with label (no frame) */
+    /** Create a simple button without label (no frame) */
     private Table createSimpleButton(ImageButton button, String labelText) {
         Table container = new Table();
         
         button.setSize(BUTTON_SIZE, BUTTON_SIZE);
-        container.add(button).size(BUTTON_SIZE).row();
-        
-        Label label = new Label(labelText, skin);
-        label.setColor(new Color(0.2f, 0.2f, 0.2f, 1f)); // Dark gray
-        label.getStyle().font.getData().setScale(1.0f);
-        container.add(label).padTop(6);
+        container.add(button).size(BUTTON_SIZE);
         
         return container;
     }
     
     /** Get the label from a button container created by createSimpleButton */
     private Label getLabelFromContainer(Table container) {
-        // The label is the second child (index 1) in the container
-        if (container.getChildren().size > 1) {
-            return (Label) container.getChildren().get(1);
-        }
+        // No label in container anymore
         return null;
     }
     
@@ -245,9 +186,17 @@ public class GameUI {
         
         // Create close button (X icon) - larger and more prominent
         ImageButton.ImageButtonStyle closeStyle = new ImageButton.ImageButtonStyle();
-        closeStyle.up = xButtonUp;
-        closeStyle.down = xButtonUp;
-        closeStyle.over = xButtonUp;
+        // Create colored placeholder for close button
+        Pixmap closePixmap = new Pixmap(64, 64, Pixmap.Format.RGBA8888);
+        closePixmap.setColor(new Color(0.9f, 0.3f, 0.3f, 1f)); // Red
+        closePixmap.fillCircle(32, 32, 30);
+        closePixmap.setColor(Color.DARK_GRAY);
+        closePixmap.drawCircle(32, 32, 31);
+        Texture closeTexture = new Texture(closePixmap);
+        closePixmap.dispose();
+        closeStyle.up = new TextureRegionDrawable(new TextureRegion(closeTexture));
+        closeStyle.down = closeStyle.up;
+        closeStyle.over = closeStyle.up;
         ImageButton closeButton = new ImageButton(closeStyle);
         closeButton.setSize(50, 50);
         
@@ -285,12 +234,7 @@ public class GameUI {
         // Clear stage
         stage.clear();
 
-        // Bottom action bar at the bottom
-        bottomActionBar.setPosition(0, 0);
-        bottomActionBar.setSize(VIEWPORT_WIDTH, BOTTOM_BAR_HEIGHT);
-
-        // Add only bottom action bar to stage
-        // Other windows are empty and always hidden
+        // Add bottom action bar to stage (already positioned in bottom right)
         stage.addActor(bottomActionBar);
     }
     
@@ -328,42 +272,6 @@ public class GameUI {
                     // Add water splash effect
                     showWaterEffect();
                 }
-            }
-        });
-
-        // Inventory button - placeholder (no popup)
-        inventoryButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                // Just scale animation, no window
-                inventoryButton.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
-                    com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(0.9f, 0.9f, 0.05f),
-                    com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(1.0f, 1.0f, 0.1f)
-                ));
-            }
-        });
-
-        // Shop button - placeholder (no popup)
-        shopButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                // Just scale animation, no window
-                shopButton.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
-                    com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(0.9f, 0.9f, 0.05f),
-                    com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(1.0f, 1.0f, 0.1f)
-                ));
-            }
-        });
-
-        // Settings button - placeholder (no popup)
-        settingsButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                // Just scale animation, no window
-                settingsButton.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
-                    com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(0.9f, 0.9f, 0.05f),
-                    com.badlogic.gdx.scenes.scene2d.actions.Actions.scaleTo(1.0f, 1.0f, 0.1f)
-                ));
             }
         });
 
@@ -418,11 +326,7 @@ public class GameUI {
                 waterButton.getStyle().down = restartButtonUp;
                 waterButton.getStyle().over = restartButtonUp;
                 
-                // Change label text to "NEW PLANT"
-                if (waterButtonLabel != null) {
-                    waterButtonLabel.setText("NEW PLANT");
-                    waterButtonLabel.setColor(new Color(0.8f, 0.2f, 0.2f, 1f)); // Red color for restart
-                }
+                // No label to update
                 
                 // Reset scale
                 waterButton.setScale(1.0f);
@@ -435,11 +339,7 @@ public class GameUI {
                 waterButton.getStyle().down = waterButtonUp;
                 waterButton.getStyle().over = waterButtonUp;
                 
-                // Change label text back to "WATER"
-                if (waterButtonLabel != null) {
-                    waterButtonLabel.setText("WATER");
-                    waterButtonLabel.setColor(new Color(0.2f, 0.2f, 0.2f, 1f)); // Dark gray color
-                }
+                // No label to update
             }
             
             // Add subtle pulse animation to water button when plant health is low
@@ -454,17 +354,9 @@ public class GameUI {
 
     // Plant status is shown only through graphics, not text
     
-    /** Create empty windows for inventory, shop, settings (buttons are placeholders) */
+    /** Create empty windows (buttons are placeholders) */
     private void createEmptyWindows() {
-        // Create empty windows that are always hidden
-        inventoryWindow = new Window("", skin);
-        inventoryWindow.setVisible(false);
-        
-        shopWindow = new Window("", skin);
-        shopWindow.setVisible(false);
-        
-        settingsWindow = new Window("", skin);
-        settingsWindow.setVisible(false);
+        // No windows needed since we only have water button
     }
 
     /** Render the UI stage */
