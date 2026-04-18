@@ -45,6 +45,9 @@ public class GameScreen implements Screen {
     private ShapeRenderer shapeRenderer;
     private Skin skin;
     private BitmapFont fontLarge, fontMedium, fontSmall;
+    
+    // Weather system
+    private WeatherManager weatherManager;
 
     // Plant textures - direct mapping to health levels
     private Texture plantTexture0;   // 0 health (dead)
@@ -123,6 +126,11 @@ public class GameScreen implements Screen {
         fontLarge.getData().setScale(1.5f);
         fontMedium.getData().setScale(1.0f);
         fontSmall.getData().setScale(0.8f);
+        
+        // Initialize weather system
+        System.out.println("GameScreen: Initializing WeatherManager...");
+        weatherManager = new WeatherManager();
+        System.out.println("GameScreen: WeatherManager initialized.");
 
         // Initialize GameUI (Scene2D UI)
         gameUI = new GameUI(this, skin, viewport);
@@ -334,9 +342,12 @@ public class GameScreen implements Screen {
                 saveTimer = 0f;
             }
         }
+        
+        // Update weather system
+        weatherManager.update(delta);
 
-        // Clear screen with white background
-        Gdx.gl.glClearColor(1f, 1f, 1f, 1); // White background
+        // Clear screen
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Update camera and set up rendering
@@ -344,8 +355,10 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
 
-        // Draw white background for plant area
-        drawPlantBackground();
+        // Draw weather background
+        batch.begin();
+        weatherManager.render(batch);
+        batch.end();
 
         // Draw plant cropped and scaled to fit screen
         batch.begin();
@@ -431,6 +444,11 @@ public class GameScreen implements Screen {
         if (plantTexture100 != null) plantTexture100.dispose();
         
         gameUI.dispose();
+        
+        // Dispose weather system
+        if (weatherManager != null) {
+            weatherManager.dispose();
+        }
     }
 
     /** Draw white background for plant area */

@@ -48,6 +48,9 @@ public class Main extends InputAdapter implements ApplicationListener {
     private Viewport viewport;
     private SpriteBatch batch;
     private ShapeRenderer shapeRenderer;
+    
+    // Weather system
+    private WeatherManager weatherManager;
     private BitmapFont fontLarge, fontMedium, fontSmall;
     private Skin skin;
 
@@ -113,6 +116,9 @@ public class Main extends InputAdapter implements ApplicationListener {
         fontMedium.getData().setScale(1.0f);
         fontSmall.getData().setScale(0.8f);
 
+        // Initialize weather system
+        weatherManager = new WeatherManager();
+        
         // Input handling
         Gdx.input.setInputProcessor(this);
     }
@@ -299,9 +305,12 @@ public class Main extends InputAdapter implements ApplicationListener {
                 showWaterEffect = false;
             }
         }
+        
+        // Update weather system
+        weatherManager.update(Gdx.graphics.getDeltaTime());
 
-        // Clear screen with pleasant gradient-like background
-        Gdx.gl.glClearColor(0.15f, 0.25f, 0.15f, 1);
+        // Clear screen
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Update camera and set up rendering
@@ -309,8 +318,10 @@ public class Main extends InputAdapter implements ApplicationListener {
         batch.setProjectionMatrix(camera.combined);
         shapeRenderer.setProjectionMatrix(camera.combined);
 
-        // Draw subtle background pattern (optional)
-        drawBackground();
+        // Draw weather background
+        batch.begin();
+        weatherManager.render(batch);
+        batch.end();
 
         // Draw plant centered
         batch.begin();
@@ -600,5 +611,10 @@ public class Main extends InputAdapter implements ApplicationListener {
         plantHealthy.dispose();
         plantDry.dispose();
         plantDead.dispose();
+        
+        // Dispose weather system
+        if (weatherManager != null) {
+            weatherManager.dispose();
+        }
     }
 }
