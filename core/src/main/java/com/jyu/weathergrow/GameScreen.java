@@ -48,6 +48,9 @@ public class GameScreen implements Screen {
     private float survivalSeconds = 0.0f;
     private boolean isDead = false;
     private long lastPlayedTime = 0;
+    private int coins = 0;
+    private float healthDecayFreezeTimer = 0f;
+    private float maxHealthOverride = HEALTH_MAX;
 
     // Graphics
     private OrthographicCamera camera;
@@ -219,11 +222,15 @@ public class GameScreen implements Screen {
         survivalSeconds = prefs.getFloat("survivalSeconds", 0.0f);
         isDead = prefs.getBoolean("isDead", false);
         lastPlayedTime = prefs.getLong("lastPlayedTime", 0);
+        coins = prefs.getInteger("coins", 0);
+        maxHealthOverride = prefs.getFloat("maxHealthOverride", HEALTH_MAX);
 
         // If first launch, initialize with current timestamp and max health
         if (lastSaveTimestamp == 0) {
             lastSaveTimestamp = System.currentTimeMillis();
             health = HEALTH_MAX;
+            maxHealthOverride = HEALTH_MAX;
+            coins = 100; // Starting coins
             saveGameState();
         }
     }
@@ -237,6 +244,8 @@ public class GameScreen implements Screen {
         prefs.putFloat("survivalSeconds", survivalSeconds);
         prefs.putBoolean("isDead", isDead);
         prefs.putLong("lastPlayedTime", System.currentTimeMillis());
+        prefs.putInteger("coins", coins);
+        prefs.putFloat("maxHealthOverride", maxHealthOverride);
         prefs.flush();
     }
 
@@ -340,13 +349,38 @@ public class GameScreen implements Screen {
 
     // Getters for GameUI to access game state
     public float getHealth() { return health; }
-    public float getHealthMax() { return HEALTH_MAX; }
+    public float getHealthMax() { return maxHealthOverride; }
     public int getWaterCount() { return waterCount; }
     public float getSurvivalSeconds() { return survivalSeconds; }
     public boolean isPlantDead() { return isDead; }
     public long getLastPlayedTime() { return lastPlayedTime; }
     public float getViewportWidth() { return VIEWPORT_WIDTH; }
     public float getViewportHeight() { return VIEWPORT_HEIGHT; }
+    public int getCoins() { return coins; }
+    public boolean deductCoins(int amount) {
+        if (coins >= amount) {
+            coins -= amount;
+            saveGameState();
+            return true;
+        }
+        return false;
+    }
+    public void addCoins(int amount) {
+        coins += amount;
+        saveGameState();
+    }
+
+    public void boostMaxHealth() {
+        maxHealthOverride += 20f;
+        health = Math.min(health + 20f, maxHealthOverride);
+        saveGameState();
+    }
+
+    public float getMaxHealth() { return maxHealthOverride; }
+
+    public void freezeHealthDecay(float seconds) {
+        healthDecayFreezeTimer = seconds;
+    }
 
     @Override
     public void render(float delta) {
@@ -355,7 +389,11 @@ public class GameScreen implements Screen {
         
         // Update health in real-time (1 point per second)
         if (!isDead) {
-            health -= HEALTH_DECAY_PER_SECOND * delta;
+            if (healthDecayFreezeTimer > 0f) {
+                healthDecayFreezeTimer -= delta;
+            } else {
+                health -= HEALTH_DECAY_PER_SECOND * delta;
+            }
             
             // Check for death
             if (health <= HEALTH_DEAD) {

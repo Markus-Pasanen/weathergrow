@@ -5,17 +5,12 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 
@@ -36,6 +31,11 @@ public class GameUI {
     // Custom drawables
     private TextureRegionDrawable waterButtonUp;
     private TextureRegionDrawable restartButtonUp;
+    private TextureRegionDrawable shopButtonUp;
+
+    // Shop system
+    private ShopWindow shopWindow;
+    private ImageButton shopButton;
 
     // Constants for layout
     private static final float VIEWPORT_WIDTH = 720f;
@@ -66,6 +66,9 @@ public class GameUI {
         // Create bottom action bar with buttons
         createBottomActionBar();
 
+        // Create shop overlay
+        createShopWindow();
+
         // Create game over window (initially hidden)
         createGameOverWindow();
 
@@ -81,6 +84,7 @@ public class GameUI {
         // Try to load icons with multiple fallback strategies
         waterButtonUp = loadIcon("water");
         restartButtonUp = loadIcon("restart");
+        shopButtonUp = loadIcon("shop");
     }
     
     /** Load an icon - uses PNG files directly */
@@ -134,13 +138,34 @@ public class GameUI {
 
     // Removed stats panel - plant health is shown only through graphics and status text
 
-    /** Create bottom action bar with only water button in bottom right corner */
+    /** Create bottom action bar with water button (right) and shop button (left) */
     private void createBottomActionBar() {
         bottomActionBar = new Table();
-        bottomActionBar.setFillParent(true); // Fill entire stage
-        bottomActionBar.bottom().right(); // Align to bottom right
+        bottomActionBar.setFillParent(true);
+        bottomActionBar.bottom();
 
-        // Water button (functional)
+        // Shop button (bottom left)
+        ImageButton.ImageButtonStyle shopStyle = new ImageButton.ImageButtonStyle();
+        shopStyle.up = shopButtonUp;
+        shopStyle.down = shopButtonUp;
+        shopStyle.over = shopButtonUp;
+
+        shopButton = new ImageButton(shopStyle);
+        shopButton.setColor(Color.WHITE);
+
+        shopButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                shopButton.setColor(0.7f, 0.7f, 0.8f, 1f);
+                if (shopWindow != null) {
+                    shopWindow.show();
+                }
+            }
+        });
+
+        Table shopContainer = createSimpleButton(shopButton, "SHOP");
+
+        // Water button (bottom right)
         ImageButton.ImageButtonStyle waterStyle = new ImageButton.ImageButtonStyle();
         waterStyle.up = waterButtonUp;
         waterStyle.down = waterButtonUp;
@@ -148,33 +173,30 @@ public class GameUI {
         
         waterButton = new ImageButton(waterStyle);
         
-        // Add press animation - change color when pressed
         waterButton.addListener(new ClickListener() {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                // Add color tint for press feedback
-                waterButton.setColor(0.7f, 0.7f, 1.0f, 1.0f); // Brighter blue tint
+                waterButton.setColor(0.7f, 0.7f, 1.0f, 1.0f);
                 return true;
             }
             
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                // Restore color
                 waterButton.setColor(Color.WHITE);
             }
             
             @Override
             public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
-                // If finger exits button without releasing, restore normal state
                 waterButton.setColor(Color.WHITE);
             }
         });
         
-        // Create simple button container with label
         waterButtonContainer = createSimpleButton(waterButton, "WATER");
         waterButtonLabel = getLabelFromContainer(waterButtonContainer);
 
-        // Add button to bottom right corner with padding
+        // Layout: shop left, spacer, water right
+        bottomActionBar.add(shopContainer).pad(BUTTON_PADDING).bottom().left();
+        bottomActionBar.add().expandX();
         bottomActionBar.add(waterButtonContainer).pad(BUTTON_PADDING).bottom().right();
     }
     
@@ -260,6 +282,11 @@ public class GameUI {
 
         // Add bottom action bar to stage (already positioned in bottom right)
         stage.addActor(bottomActionBar);
+
+        // Add shop window overlay (hidden by default)
+        if (shopWindow != null) {
+            stage.addActor(shopWindow.getWindow());
+        }
     }
     
     /** Center a window on screen */
@@ -383,6 +410,43 @@ public class GameUI {
         // No windows needed since we only have water button
     }
 
+    /** Create the shop overlay window with purchasable items */
+    private void createShopWindow() {
+        java.util.List<ShopWindow.ShopItem> shopItems = new java.util.ArrayList<>();
+        shopItems.add(new ShopWindow.ShopItem("extra_health", "Extra Health", 30,
+            "Instantly restores 30 health to your plant."));
+        shopItems.add(new ShopWindow.ShopItem("health_boost", "Health Boost", 50,
+            "Permanently increases max health by 20."));
+        shopItems.add(new ShopWindow.ShopItem("time_freeze", "Time Freeze", 80,
+            "Pauses health decay for 60 seconds."));
+
+        shopWindow = new ShopWindow(skin, stage, shopItems, new ShopWindow.ShopCallback() {
+            @Override
+            public boolean onPurchase(ShopWindow.ShopItem item, int price) {
+                boolean deducted = gameScreen.deductCoins(price);
+                if (!deducted) return false;
+
+                switch (item.id) {
+                    case "extra_health":
+                        gameScreen.waterPlant();
+                        break;
+                    case "health_boost":
+                        gameScreen.boostMaxHealth();
+                        break;
+                    case "time_freeze":
+                        gameScreen.freezeHealthDecay(60f);
+                        break;
+                }
+                return true;
+            }
+
+            @Override
+            public int getPlayerCoins() {
+                return gameScreen.getCoins();
+            }
+        });
+    }
+
     /** Render the UI stage */
     public void render(float delta) {
         update(delta);
@@ -398,6 +462,7 @@ public class GameUI {
 
     /** Dispose resources */
     public void dispose() {
+        if (shopWindow != null) shopWindow.dispose();
         stage.dispose();
     }
 
