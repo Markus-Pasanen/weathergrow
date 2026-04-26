@@ -413,12 +413,18 @@ public class GameUI {
     /** Create the shop overlay window with purchasable items */
     private void createShopWindow() {
         java.util.List<ShopWindow.ShopItem> shopItems = new java.util.ArrayList<>();
-        shopItems.add(new ShopWindow.ShopItem("extra_health", "Extra Health", 30,
-            "Instantly restores 30 health to your plant."));
-        shopItems.add(new ShopWindow.ShopItem("health_boost", "Health Boost", 50,
-            "Permanently increases max health by 20."));
-        shopItems.add(new ShopWindow.ShopItem("time_freeze", "Time Freeze", 80,
+        shopItems.add(new ShopWindow.ShopItem("extra_health", "Seed", 30,
+            "A magical seed to nourish your plant."));
+        shopItems.add(new ShopWindow.ShopItem("health_boost", "Growth", 50,
+            "Accelerates your plant's growth permanently."));
+        shopItems.add(new ShopWindow.ShopItem("time_freeze", "Health Booster", 80,
             "Pauses health decay for 60 seconds."));
+        shopItems.add(new ShopWindow.ShopItem("pot_basic", "Terracotta Pot", 20,
+            "A simple yet classic pot."));
+        shopItems.add(new ShopWindow.ShopItem("pot_fancy", "Porcelain Pot", 40,
+            "An elegant pot for your plant."));
+        shopItems.add(new ShopWindow.ShopItem("pot_premium", "Crystal Pot", 60,
+            "A rare crystal pot."));
 
         shopWindow = new ShopWindow(skin, stage, shopItems, new ShopWindow.ShopCallback() {
             @Override
@@ -435,6 +441,10 @@ public class GameUI {
                         break;
                     case "time_freeze":
                         gameScreen.freezeHealthDecay(60f);
+                        break;
+                    case "pot_basic":
+                    case "pot_fancy":
+                    case "pot_premium":
                         break;
                 }
                 return true;
