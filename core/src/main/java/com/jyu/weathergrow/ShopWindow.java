@@ -24,7 +24,7 @@ public class ShopWindow {
     private static final float H = 1280f;
     private static final float CARD_W = 186f;
     private static final float BTN_W = 168f;
-    private static final float BTN_H = 48f;
+    private static final float BTN_H = 64f;
 
     private final Skin skin;
     private final Stage stage;
@@ -39,6 +39,7 @@ public class ShopWindow {
     private final Texture toastBgTex;
     private final Texture badgeTex;
     private final Texture coinTex;
+    private final Texture priceBgTex;
     private final Texture btnGreenTex;
     private final Texture btnGreenDownTex;
     private final Texture btnDisabledTex;
@@ -83,6 +84,7 @@ public class ShopWindow {
         toastBgTex = createRoundRectTex(400, 60, 10, new Color(0.04f, 0.04f, 0.06f, 0.94f));
         badgeTex = createRoundRectTex(120, 36, 5, new Color(1f, 0.55f, 0f, 1f));
         coinTex = createCoinTex(32);
+        priceBgTex = createPriceBgTex(48);
         btnGreenTex = createSolidTexture(new Color(0.12f, 0.72f, 0.28f, 1f));
         btnGreenDownTex = createSolidTexture(new Color(0.07f, 0.52f, 0.18f, 1f));
         btnDisabledTex = createSolidTexture(new Color(0.25f, 0.25f, 0.28f, 0.65f));
@@ -113,13 +115,14 @@ public class ShopWindow {
         try {
             Texture tex = new Texture(Gdx.files.internal(path));
             TextureRegionDrawable d = new TextureRegionDrawable(new TextureRegion(tex));
-            d.setMinWidth(72);
-            d.setMinHeight(72);
+            d.setMinWidth(BTN_W);
+            d.setMinHeight(BTN_W);
             return d;
         } catch (Exception e) {
-            Pixmap p = new Pixmap(72, 72, Pixmap.Format.RGBA8888);
+            int sz = (int) BTN_W;
+            Pixmap p = new Pixmap(sz, sz, Pixmap.Format.RGBA8888);
             p.setColor(0.35f, 0.6f, 0.85f, 1f);
-            p.fillCircle(36, 36, 34);
+            p.fillCircle(sz / 2, sz / 2, sz / 2 - 1);
             Texture tex = new Texture(p);
             p.dispose();
             return new TextureRegionDrawable(new TextureRegion(tex));
@@ -231,37 +234,20 @@ public class ShopWindow {
             badgeTable.add(badgeLabel).pad(2, 5, 2, 5);
 
             iconStack.add(badgeTable);
-            innerContent.add(iconStack).size(56).center().padBottom(5).row();
+            innerContent.add(iconStack).width(BTN_W).center().padBottom(5).row();
         } else {
             Image icon = new Image(iconDrw);
             icon.setScaling(Scaling.fit);
-            innerContent.add(icon).size(56).center().padBottom(5).row();
+            innerContent.add(icon).width(BTN_W).center().padBottom(5).row();
         }
-
-        Label nameLbl = new Label(item.name, skin);
-        nameLbl.setColor(1f, 1f, 1f, 1f);
-        nameLbl.setFontScale(0.8f);
-        nameLbl.setAlignment(Align.center);
-        innerContent.add(nameLbl).expandX().center().padBottom(3).row();
 
         Label descLbl = new Label(item.description, skin);
         descLbl.setColor(0.5f, 0.52f, 0.6f, 1f);
-        descLbl.setFontScale(0.55f);
+        descLbl.setFontScale(1f);
         descLbl.setWrap(true);
         descLbl.setAlignment(Align.center);
-        float descW = stackW - 12;
+        float descW = (stackW - 12) * 0.9f;
         innerContent.add(descLbl).width(descW).center().padBottom(6).row();
-
-        Table priceRow = new Table();
-        Image pCoin = new Image(new TextureRegionDrawable(new TextureRegion(coinTex)));
-        pCoin.setScaling(Scaling.fit);
-        Label priceLbl = new Label(String.valueOf(item.price), skin);
-        priceLbl.setColor(1f, 0.84f, 0.2f, 1f);
-        priceLbl.setFontScale(0.9f);
-        priceRow.add(pCoin).size(14);
-        priceRow.add(priceLbl).padLeft(3);
-
-        innerContent.add(priceRow).center().padBottom(6).row();
 
         TextButton buyBtn = makeBuyBtn(item);
         buyButtons.add(buyBtn);
@@ -278,6 +264,24 @@ public class ShopWindow {
         stack.add(cardBgImage);
         stack.add(inner);
         card.add(stack).size(stackW, stackH);
+        card.pack();
+
+        Table priceRow = new Table();
+        priceRow.setBackground(new TextureRegionDrawable(new TextureRegion(priceBgTex)));
+        Image pCoin = new Image(new TextureRegionDrawable(new TextureRegion(coinTex)));
+        pCoin.setScaling(Scaling.fit);
+        Label priceLbl = new Label(String.valueOf(item.price), skin);
+        priceLbl.setColor(1f, 0.84f, 0.2f, 1f);
+        priceLbl.setFontScale(1.618f);
+        priceRow.add(pCoin).size(14).padLeft(6).padTop(4).padBottom(4);
+        priceRow.add(priceLbl).padLeft(3).padRight(8).padTop(4).padBottom(4);
+        priceRow.pack();
+        priceRow.setPosition(
+            card.getWidth() - priceRow.getWidth() - 6,
+            card.getHeight() - priceRow.getHeight() - 6
+        );
+        card.addActor(priceRow);
+
         cardRefs.add(card);
         return card;
     }
@@ -292,7 +296,7 @@ public class ShopWindow {
         s2.disabledFontColor = new Color(0.5f, 0.5f, 0.5f, 1f);
 
         TextButton btn = new TextButton("BUY", s2);
-        btn.getLabel().setFontScale(0.85f);
+        btn.getLabel().setFontScale(1.618f);
         btn.pad(6);
 
         btn.addListener(new ClickListener() {
@@ -431,6 +435,17 @@ public class ShopWindow {
         return t;
     }
 
+    private static Texture createPriceBgTex(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setColor(0f, 0f, 0f, 0.65f);
+        p.fillRectangle(0, 0, size, size);
+        p.setColor(0.3f, 0.3f, 0.35f, 0.8f);
+        p.drawRectangle(0, 0, size - 1, size - 1);
+        Texture t = new Texture(p);
+        p.dispose();
+        return t;
+    }
+
     // --- Show / Hide ---
 
     public void show() {
@@ -467,6 +482,7 @@ public class ShopWindow {
         toastBgTex.dispose();
         badgeTex.dispose();
         coinTex.dispose();
+        priceBgTex.dispose();
         btnGreenTex.dispose();
         btnGreenDownTex.dispose();
         btnDisabledTex.dispose();
