@@ -19,7 +19,7 @@ public class WeatherManager {
     private static final String PREFS_NAME = "WeatherPrefs";
     private static final String KEY_LAST_WEATHER_CHANGE = "lastWeatherChange";
     private static final String KEY_CURRENT_WEATHER = "currentWeather";
-    private static final long WEATHER_CHANGE_INTERVAL = 3600000; // 1 hour in milliseconds
+    private static final long WEATHER_CHANGE_INTERVAL = 10000; // 10 seconds in milliseconds
     
     // Weighted probabilities: sunny 50%, overcast 30%, rainy 20%
     private static final float[] WEATHER_WEIGHTS = {0.5f, 0.3f, 0.2f};
@@ -227,6 +227,19 @@ public class WeatherManager {
     
     public WeatherState getCurrentWeather() {
         return currentWeather;
+    }
+
+    public float getHealthDrainMultiplier() {
+        switch (currentWeather) {
+            case SUNNY:
+                return 2.0f;
+            case OVERCAST:
+                return 1.0f;
+            case RAINY:
+                return -0.5f;
+            default:
+                return 1.0f;
+        }
     }
     
     public boolean isTransitioning() {

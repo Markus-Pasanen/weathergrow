@@ -392,8 +392,10 @@ public class GameScreen implements Screen {
             if (healthDecayFreezeTimer > 0f) {
                 healthDecayFreezeTimer -= delta;
             } else {
-                health -= HEALTH_DECAY_PER_SECOND * delta;
+                health -= HEALTH_DECAY_PER_SECOND * weatherManager.getHealthDrainMultiplier() * delta;
             }
+            
+            health = Math.min(health, maxHealthOverride);
             
             // Check for death
             if (health <= HEALTH_DEAD) {
